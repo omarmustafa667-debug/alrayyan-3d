@@ -1,7 +1,7 @@
-import * as THREE from "./lib/three.module.js";
-import {OrbitControls} from "./lib/OrbitControls.js";
-import {GLTFLoader} from "./lib/GLTFLoader.js";
-import {RoomEnvironment} from "./lib/RoomEnvironment.js";
+import * as THREE from "./three.module.js";
+import {OrbitControls} from "./OrbitControls.js";
+import {GLTFLoader} from "./GLTFLoader.js";
+import {RoomEnvironment} from "./RoomEnvironment.js";
 {
 const RES_URL = "r3_model.glb";
 const TANK_URL = "r2_model.glb";
