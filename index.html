@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Al-Rayyan storage 3D</title>
+<style>
+/* VOICE: calm engineering model viewer; the site itself is the picture
+   IDEA: a survey model on a table with a storm-time dial under it, two exhibits (reservoir, tanks cutaway)
+   PICTURE: full-screen baked 3-D model; water follows the design storm hour by hour
+   COLOUR and TYPE: desert sky ground, white ink panel, water turquoise #5E8FA3, tanks orange #E69F00, storm vermilion; Sofia Sans Condensed + Instrument Sans
+   LAYOUT: model fills the screen; readout card top-left with a sparkline; view switch top-right; slider dock at the bottom */
+:root{color-scheme:light dark;--sky1:#cfe0ea;--sky2:#eef1ef;--ink:#13171a;--panel:rgba(255,255,255,.88);--line:rgba(19,23,26,.14);--water:#5E8FA3;--tank:#E69F00;--acc:#e0482a;--muted:#4c565c}
+:root[data-theme=dark]{--sky1:#1b2733;--sky2:#2b3138;--ink:#eef1f2;--panel:rgba(18,22,26,.84);--line:rgba(238,241,242,.16);--muted:#a9b3b8}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--sky1:#1b2733;--sky2:#2b3138;--ink:#eef1f2;--panel:rgba(18,22,26,.84);--line:rgba(238,241,242,.16);--muted:#a9b3b8}}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:linear-gradient(180deg,var(--sky1),var(--sky2));color:var(--ink);font:15px/1.45 "Instrument Sans",system-ui,sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.card{background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:14px;padding:10px 14px;box-shadow:0 6px 24px rgba(0,0,0,.12)}
+.info{position:fixed;left:12px;top:12px;width:min(360px,calc(100vw - 24px))}
+h1{font:800 22px/1.05 "Sofia Sans Condensed",sans-serif;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px}
+.read{display:grid;grid-template-columns:auto auto;gap:2px 14px;margin-top:8px;font-variant-numeric:tabular-nums}
+.read b{font:700 20px/1.1 "Sofia Sans Condensed",sans-serif;white-space:nowrap}
+.read span{color:var(--muted);font-size:12px;align-self:end}
+.row{display:flex;align-items:center;gap:10px;margin-top:8px}
+.phase{padding:3px 9px;border-radius:999px;background:var(--water);color:#fff;font-weight:600;font-size:13px;white-space:nowrap}
+.phase.storm{background:var(--acc)}
+#spark{flex:1;height:38px;display:block}
+.views{position:fixed;right:12px;top:12px;display:flex;gap:0;padding:4px;border-radius:14px}
+.views button{border:0;background:transparent;border-radius:10px}
+.views button[aria-pressed=true]{background:var(--ink);color:var(--sky2)}
+button{font:600 14px "Instrument Sans",sans-serif;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:12px;min-width:44px;min-height:44px;padding:0 12px;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--water);outline-offset:2px}
+.tools{position:fixed;right:12px;top:72px;display:flex;flex-direction:column;gap:8px}
+.dock{position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;align-items:center}
+#play{min-height:52px;font-size:18px;background:var(--ink);color:var(--sky2);border:0}
+.dock .card{padding:8px 14px 6px}
+input[type=range]{width:100%;height:32px;accent-color:var(--water)}
+.ticks{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.tag{position:fixed;left:0;top:0;pointer-events:none;white-space:nowrap;font-weight:600;font-size:12px;color:#fff;background:rgba(19,23,26,.8);padding:3px 8px;border-radius:8px}
+.tag::after{content:"";position:absolute;left:50%;top:100%;width:1px;height:14px;background:rgba(255,255,255,.85)}
+.hide .tag{display:none}
+#load{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:600;color:var(--muted);background:var(--panel);padding:10px 16px;border-radius:12px}
+.note{font-size:11px;color:var(--muted);margin-top:2px}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:3px;border-radius:2px;vertical-align:middle;margin-right:4px}
+@media(max-width:600px){h1{font-size:19px}.read b{font-size:17px}.card{padding:8px 11px}.sub{font-size:12px}
+  .info{top:64px}.views{left:12px;right:12px;justify-content:center}.views button{flex:1}
+  .tools{top:auto;bottom:calc(max(12px,env(safe-area-inset-bottom)) + 96px);flex-direction:row}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Interactive 3-D model of the stormwater storage"></canvas>
+<div class="views card" role="group" aria-label="Choose model">
+  <button id="vRes" aria-pressed="true">Reservoir</button>
+  <button id="vTank" aria-pressed="false">Tanks A + B cutaway</button>
+</div>
+<div class="info card">
+  <h1 id="title">Open reservoir at J016</h1>
+  <div class="sub" id="sub">Lined reservoir, 190 × 94.5 m floor · drag to orbit, pinch to zoom</div>
+  <div class="read">
+    <b id="t">0.0 h</b><b id="lv">+9.80</b>
+    <span>storm time</span><span id="lvLab">water level, m QNHD</span>
+    <b id="vol">0 m³</b><b id="pc">0 %</b>
+    <span>stored</span><span id="capLab">of 29,565 m³</span>
+  </div>
+  <div class="row"><div id="ph" class="phase">Before the storm</div><svg id="spark" aria-label="Storage over the storm"></svg></div>
+  <div class="legend"><span><i style="background:var(--tank)"></i>tanks</span><span><i style="background:var(--water)"></i>reservoir</span><span>0–72 h</span></div>
+</div>
+<div class="tools">
+  <button id="lbl" aria-pressed="true">Labels</button>
+  <button id="home">Reset</button>
+</div>
+<div class="dock">
+  <button id="play" aria-label="Play the storm">▶</button>
+  <div class="card">
+    <input id="s" type="range" min="0" max="72" step="0.05" value="0" aria-label="Storm time in hours">
+    <div class="ticks"><span>0 h</span><span>12</span><span>24</span><span>36</span><span>48</span><span>60</span><span>72 h</span></div>
+    <div class="note">10-year design storm, SWMM results for Alternative 2 · Al-Rayyan, Doha</div>
+  </div>
+</div>
+<div id="tags"></div>
+<div id="load">Loading 3-D model…<noscript> (JavaScript is off)</noscript></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
